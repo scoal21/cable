@@ -1,20 +1,22 @@
 import streamlit as st
 import pandas as pd
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 import json
 
 # 페이지 기본 설정
 st.set_page_config(layout="wide", page_title="(의장1부 송운) 케이블 재고 관리")
 
-# --- 1. 구글 시트 연결 (가장 중요!) ---
+# --- 1. 구글 시트 연결 (최신 방식) ---
 @st.cache_resource
 def init_connection():
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    # 스트림릿 금고(Secrets)에서 열쇠 꺼내기
+    # 금고(Secrets)에서 열쇠 꺼내기
     creds_dict = json.loads(st.secrets["gcp_json"])
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    client = gspread.authorize(creds)
+    
+    # ⭐️ 핵심 해결책: 꼬여버린 줄바꿈(\n) 기호를 정상적인 엔터로 강제 변환!
+    creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+    
+    # gspread 최신 방식으로 즉시 연결
+    client = gspread.service_account_from_dict(creds_dict)
     return client
 
 client = init_connection()

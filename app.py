@@ -6,18 +6,21 @@ import json
 # 페이지 기본 설정
 st.set_page_config(layout="wide", page_title="(의장1부 송운) 케이블 재고 관리")
 
-# --- 1. 구글 시트 연결 (최신 방식) ---
+# --- 1. 구글 시트 연결 (강력한 복원 기능 추가) ---
 @st.cache_resource
 def init_connection():
-    # 금고(Secrets)에서 열쇠 꺼내기
-    creds_dict = json.loads(st.secrets["gcp_json"])
+    # strict=False를 추가해 구조가 약간 깨져도 억지로 읽어오게 합니다.
+    raw_json = st.secrets["gcp_json"]
+    creds_dict = json.loads(raw_json, strict=False)
     
-    # ⭐️ 핵심 해결책: 꼬여버린 줄바꿈(\n) 기호를 정상적인 엔터로 강제 변환!
-    creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+    # ⭐️ 핵심: 열쇠가 어떻게 깨졌든 강제로 원래 모양으로 복구합니다.
+    key = creds_dict.get("private_key", "")
+    key = key.replace("\\n", "\n") # 꼬여버린 줄바꿈 기호를 진짜 줄바꿈으로 복구
+    key = key.replace("—", "-")    # 워드패드/맥에서 멋대로 바꾼 긴 대시를 원래대로 복구
+    creds_dict["private_key"] = key
     
-    # gspread 최신 방식으로 즉시 연결
-    client = gspread.service_account_from_dict(creds_dict)
-    return client
+    # 최신 방식으로 연결
+    return gspread.service_account_from_dict(creds_dict)
 
 client = init_connection()
 
